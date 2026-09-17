@@ -1,5 +1,7 @@
 ﻿# CMP 30HX Unlock
 
+[English version](README_en.md)
+
 Патч и скрипты для графического процессора NVIDIA CMP 30HX на базе открытых
 [open-gpu-kernel-modules](https://github.com/NVIDIA/open-gpu-kernel-modules) версии **610.43.03**.
 
