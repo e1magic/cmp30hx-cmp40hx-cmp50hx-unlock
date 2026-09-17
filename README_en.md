@@ -87,7 +87,7 @@ sudo dmesg | grep CMP30_PCIE_GEN2_V2      # RETRAIN_PASS status=1102 attempt=N
 Live run on x16 Gen2: D2D ~301 GB/s, H2D/D2H ~6.7 GB/s (≈97% of bus bandwidth).
 
 > **Never poke the link retrain/RL register from the OS runtime** (setpci etc.):
-> on this Intel chipset it drops the link and leaves the card dead in config
+> on Intel chipsets it drops the link and leaves the card dead in config
 > space until a cold power cycle. All retraining lives in the patch, at module load.
 
 ## Requirements
