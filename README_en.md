@@ -90,6 +90,25 @@ sudo reboot
 
 Verify the same way: `dmesg | grep -i cmp30hx` and `nvidia-smi`.
 
+## reg_set.py — GPU registers after the unlock
+
+A small utility to read/write 32-bit GPU registers via `/dev/mem` (BAR0 window
+`0xfa000000`, 16 MB). Handy to verify the locks are really off, and for runtime
+experiments with the speed overrides (SS0/SS1):
+
+```bash
+# read:
+sudo python3 reg_set.py 0x409664
+# write:
+sudo python3 reg_set.py 0x409664 0x88888888
+```
+
+Prints the value before, after, and `OK`/`FAIL` (whether it stuck). The offset must
+be a multiple of 4 and lie in `0..0x1000000`. Known registers: `0x409650` —
+`FECS_PLM` (reads `ffffffff` after the ritual), `0x409664`/`0x40966C` — `SS0`/`SS1`.
+BAR0 may differ on another machine — check `lspci -v -s 10de:2189` and fix the
+constant at the top of the script.
+
 ## Rollback
 
 ```bash
@@ -106,6 +125,7 @@ Stock copies are made once at first install and are never overwritten.
 | `cmp30hx-build.sh` | download pinned source + patch + build |
 | `cmp30hx-install.sh` | install / `--rollback` |
 | `cmp30hx-hotload.sh` | temporary load with the full ritual |
+| `reg_set.py` | read/write GPU registers via `/dev/mem` (after the unlock) |
 
 ## Authorship
 
