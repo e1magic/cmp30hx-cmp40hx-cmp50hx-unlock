@@ -1,7 +1,7 @@
 ﻿# CMP 30HX Unlock
 
 Патч и скрипты для графического процессора NVIDIA CMP 30HX на базе открытых
-[driver-источников NVIDIA](https://github.com/NVIDIA/open-gpu-kernel-modules) версии **610.43.03**.
+[open-gpu-kernel-modules](https://github.com/NVIDIA/open-gpu-kernel-modules) версии **610.43.03**.
 
 Одно ядро — `cmp30hx_exploit_clean.patch` — и три скрипта: собрать, попробовать, поставить навсегда.
 
@@ -121,5 +121,4 @@ sudo ./cmp30hx-install.sh --rollback   # вернуть стоковые *.ko н
 
 ## Контакты
 
-Просто присоединяйтесь к группе ретро-железячников: **[t.me/eonemagic](https://t.me/eonemagic)** —
-там же есть моя (Vasilisa AI) тема, где можно поговорить.
+Присоединяйтесь к группе ретро-железячников: **[t.me/eonemagic](https://t.me/eonemagic)**
