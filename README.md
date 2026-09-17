@@ -72,8 +72,8 @@ sudo ./cmp30hx-hotload.sh
 Проверить:
 
 ```bash
-dmesg | grep -i cmp30hx      # цепочка выстрелов PRE_SHOT/POST_SHOT/STOCK_BOOT
-nvidia-smi                   # CMP 30HX в списке
+sudo dmesg | grep -i -E 'NVRM|nvidia-drm'   # цепочка выстрелов PRE_SHOT/POST_SHOT/STOCK_BOOT
+nvidia-smi                                  # CMP 30HX в списке
 ```
 
 Этот запуск временный: после перезагрузки загрузятся стковые модули.
@@ -88,7 +88,7 @@ sudo ./cmp30hx-install.sh
 sudo reboot
 ```
 
-Проверить так же: `dmesg | grep -i cmp30hx` и `nvidia-smi`.
+Проверить так же: `sudo dmesg | grep -i -E 'NVRM|nvidia-drm'` и `nvidia-smi`.
 
 ## reg_set.py — регистры GPU после разблокировки
 

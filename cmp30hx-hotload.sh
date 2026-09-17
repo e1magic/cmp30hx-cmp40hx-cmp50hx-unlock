@@ -72,7 +72,7 @@ for _ in $(seq 1 "$WAIT_S"); do
     [ "$N" -gt 0 ] && { OK=1; break; }
     sleep 1
 done
-[ "$OK" -eq 1 ] || die "ритуал не завершился за ${WAIT_S} с. Смотри: dmesg | grep CMP30"
+[ "$OK" -eq 1 ] || die "ритуал не завершился за ${WAIT_S} с. Смотри: sudo dmesg | grep -i -E 'NVRM|nvidia-drm'"
 
 SEC=$(last_section)
 PRE=$(printf '%s' "$SEC" | grep -c "CMP30 STAT PRE_SHOT" || true)

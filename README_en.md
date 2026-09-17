@@ -72,8 +72,8 @@ sudo ./cmp30hx-hotload.sh
 Verify:
 
 ```bash
-dmesg | grep -i cmp30hx      # the shot chain: PRE_SHOT/POST_SHOT/STOCK_BOOT
-nvidia-smi                   # CMP 30HX in the list
+sudo dmesg | grep -i -E 'NVRM|nvidia-drm'   # the shot chain: PRE_SHOT/POST_SHOT/STOCK_BOOT
+nvidia-smi                                  # CMP 30HX in the list
 ```
 
 This run is temporary: after a reboot the stock modules load again.
@@ -88,7 +88,7 @@ sudo ./cmp30hx-install.sh
 sudo reboot
 ```
 
-Verify the same way: `dmesg | grep -i cmp30hx` and `nvidia-smi`.
+Verify the same way: `sudo dmesg | grep -i -E 'NVRM|nvidia-drm'` and `nvidia-smi`.
 
 ## reg_set.py — GPU registers after the unlock
 
