@@ -5,7 +5,8 @@
 A patch and scripts for the NVIDIA CMP 30HX GPU, built on top of NVIDIA's open
 [open-gpu-kernel-modules](https://github.com/NVIDIA/open-gpu-kernel-modules) driver, version **610.43.03**.
 
-One core — `cmp30hx_exploit_clean.patch` — and three scripts: build it, try it, keep it forever.
+Two patches — the PLM unlock (`cmp30hx_exploit_clean.patch`) and PCIe Gen2
+(`cmp30hx_pcie2.patch`) — and three scripts: build (with patch selection), try, keep forever.
 
 > **Important:** the NVIDIA driver **610.43.03** must already be installed on the system
 > in its open kernel modules flavor (**MIT**, NVIDIA labels it the `-open` variant):
@@ -46,6 +47,49 @@ driver performs an ordinary stock `BooterLoad` — and GSP takes off on an alrea
 awakened card. The quota is exactly three shots per module lifetime; beyond that the
 driver is completely stock.
 
+## Patches and selection
+
+| id | File | What it does |
+|---|---|---|
+| `exploit` | `cmp30hx_exploit_clean.patch` | PLM/GSP unlock (see "What it does") |
+| `pcie2` | `cmp30hx_pcie2.patch` | PCIe Gen2 x16 (see "PCIe Gen2") |
+
+The patches are independent — apply either one or both. The build asks which
+patches to apply:
+
+```bash
+./cmp30hx-build.sh                       # interactive pick (numbers/ids/all)
+./cmp30hx-build.sh --patches=all         # non-interactive: both
+./cmp30hx-build.sh --patches=exploit     # unlock only
+./cmp30hx-build.sh --dry-run --patches=all   # only check applicability
+```
+
+An already-applied patch is detected by its marker in the sources and skipped —
+rerunning is safe. A third patch = one line in the `PATCHES` catalog at the top
+of `cmp30hx-build.sh` + the patch file next to the script.
+
+## PCIe Gen2
+
+The card sits on Gen1 (2.5 GT/s) out of the box. The `pcie2` patch works in two
+places of the module load path: (1) after GSP is ready it clears the Gen2
+software fuse and sets the speed policy in the GPU's PCIe block; (2) on the
+first device open it runs a short series of link retrains (bridge → endpoint →
+bridge) targeting 5 GT/s on both ends. The hardware picks the speed, so the
+first attempt is not guaranteed — the machine fires up to three pulses.
+
+Verify:
+
+```bash
+lspci -vv -s 10de:2189 | grep LnkSta      # Speed 5GT/s, Width x16 — no "downgraded" note
+sudo dmesg | grep CMP30_PCIE_GEN2_V2      # RETRAIN_PASS status=1102 attempt=N
+```
+
+Live run on x16 Gen2: D2D ~301 GB/s, H2D/D2H ~6.7 GB/s (≈97% of bus bandwidth).
+
+> **Never poke the link retrain/RL register from the OS runtime** (setpci etc.):
+> on this Intel chipset it drops the link and leaves the card dead in config
+> space until a cold power cycle. All retraining lives in the patch, at module load.
+
 ## Requirements
 
 - CMP 30HX (PCI ID `10de:2189`);
@@ -61,7 +105,7 @@ The system stays untouched — after a reboot everything is stock again, safe:
 
 ```bash
 # 1. Build: downloads the official 610.43.03 tarball from GitHub (verifies sha256),
-#    applies the patch, builds the modules.
+#    asks which patches to apply (or --patches=...), builds the modules.
 ./cmp30hx-build.sh
 
 # 2. Hot-load: unloads stock modules, loads patched ones,
@@ -122,7 +166,8 @@ Stock copies are made once at first install and are never overwritten.
 | File | Purpose |
 |---|---|
 | `cmp30hx_exploit_clean.patch` | the GSP-path patch (15 hunks, `patch -p1` from the tree root) |
-| `cmp30hx-build.sh` | download pinned source + patch + build |
+| `cmp30hx_pcie2.patch` | the PCIe Gen2 patch (2 files, `patch -p1` from the tree root) |
+| `cmp30hx-build.sh` | download pinned source + patch selection + build |
 | `cmp30hx-install.sh` | install / `--rollback` |
 | `cmp30hx-hotload.sh` | temporary load with the full ritual |
 | `reg_set.py` | read/write GPU registers via `/dev/mem` (after the unlock) |
