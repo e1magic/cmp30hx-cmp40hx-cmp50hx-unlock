@@ -80,7 +80,7 @@ first attempt is not guaranteed — the machine fires up to three pulses.
 Verify:
 
 ```bash
-lspci -vv -s 10de:2189 | grep LnkSta      # Speed 5GT/s, Width x16 — no "downgraded" note
+sudo lspci -vv -d 10de:2189 | grep LnkSta  # Speed 5GT/s, Width x16 — no "downgraded" note
 sudo dmesg | grep CMP30_PCIE_GEN2_V2      # RETRAIN_PASS status=1102 attempt=N
 ```
 
@@ -150,7 +150,7 @@ sudo python3 reg_set.py 0x409664 0x88888888
 Prints the value before, after, and `OK`/`FAIL` (whether it stuck). The offset must
 be a multiple of 4 and lie in `0..0x1000000`. Known registers: `0x409650` —
 `FECS_PLM` (reads `ffffffff` after the ritual), `0x409664`/`0x40966C` — `SS0`/`SS1`.
-BAR0 may differ on another machine — check `lspci -v -s 10de:2189` and fix the
+BAR0 may differ on another machine — check `lspci -v -d 10de:2189` and fix the
 constant at the top of the script.
 
 ## Rollback

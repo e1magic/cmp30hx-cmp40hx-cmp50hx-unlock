@@ -81,7 +81,7 @@ CMP 30HX — карта с аппаратно-замурованной поли�
 Проверить:
 
 ```bash
-lspci -vv -s 10de:2189 | grep LnkSta      # Speed 5GT/s, Width x16 — без пометки downgraded
+sudo lspci -vv -d 10de:2189 | grep LnkSta  # Speed 5GT/s, Width x16 — без пометки downgraded
 sudo dmesg | grep CMP30_PCIE_GEN2_V2      # RETRAIN_PASS status=1102 attempt=N
 ```
 
@@ -152,7 +152,7 @@ sudo python3 reg_set.py 0x409664 0x88888888
 Печатает значение до, после и `OK`/`FAIL` (установилось ли). Смещение должно быть
 кратным 4 и лежать в `0..0x1000000`. Известные регистры: `0x409650` — `FECS_PLM`
 (после ритуала `ffffffff`), `0x409664`/`0x40966C` — `SS0`/`SS1`. Адрес BAR0 на чужой
-системе может отличаться — смотри `lspci -v -s 10de:2189` и поправь константу на
+системе может отличаться — смотри `lspci -v -d 10de:2189` и поправь константу на
 вершине скрипта.
 
 ## Откат
