@@ -55,18 +55,18 @@ driver is completely stock.
 - for the permanent install: Secure Boot disabled, or you are ready to sign the
   modules into your own MOK (the script will warn you).
 
-## Installation (permanent)
+## Build and try (hot-load)
+
+The system stays untouched — after a reboot everything is stock again, safe:
 
 ```bash
 # 1. Build: downloads the official 610.43.03 tarball from GitHub (verifies sha256),
 #    applies the patch, builds the modules.
 ./cmp30hx-build.sh
 
-# 2. Install system-wide: backs up stock modules (*.ko.stock), installs patched ones.
-sudo ./cmp30hx-install.sh
-
-# 3. Reboot. On the next boot the ritual runs by itself, the card is awakened.
-sudo reboot
+# 2. Hot-load: unloads stock modules, loads patched ones,
+#    waits for the ritual, prints the counters.
+sudo ./cmp30hx-hotload.sh
 ```
 
 Verify:
@@ -76,17 +76,19 @@ dmesg | grep -i cmp30hx      # the shot chain: PRE_SHOT/POST_SHOT/STOCK_BOOT
 nvidia-smi                   # CMP 30HX in the list
 ```
 
-## Try without installing
+This run is temporary: after a reboot the stock modules load again.
 
-For experiments — hot-reload the modules straight from the built tree. The system
-is untouched; after a reboot everything is stock again:
+## Installation (permanent)
 
 ```bash
-sudo ./cmp30hx-hotload.sh    # unloads stock modules, loads patched ones,
-                             # waits for the ritual, prints the counters
+# 1. Install system-wide: backs up stock modules (*.ko.stock), installs patched ones.
+sudo ./cmp30hx-install.sh
+
+# 2. Reboot. On the next boot the ritual runs by itself, the card is awakened.
+sudo reboot
 ```
 
-This run is temporary: after a reboot the stock modules load again.
+Verify the same way: `dmesg | grep -i cmp30hx` and `nvidia-smi`.
 
 ## Rollback
 
