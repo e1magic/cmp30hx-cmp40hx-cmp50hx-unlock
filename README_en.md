@@ -157,22 +157,27 @@ Verify the same way: `sudo dmesg | grep -i -E 'NVRM|nvidia-drm'` and `nvidia-smi
 
 ## reg_set.py — GPU registers after the unlock
 
-A small utility to read/write 32-bit GPU registers via `/dev/mem` (BAR0 window
-`0xfa000000`, 16 MB). Handy to verify the locks are really off, and for runtime
-experiments with the speed overrides (SS0/SS1):
+A small utility to read/write 32-bit GPU registers via `/dev/mem`. Handy to verify
+the locks are really off, and for runtime experiments with the speed overrides
+(SS0/SS1). BAR0 is discovered automatically from sysfs
+(`/sys/bus/pci/.../resource`) — no hardcoding. Multi-card friendly:
 
 ```bash
-# read:
+# list NVIDIA GPUs with their BAR0:
+sudo python3 reg_set.py --list
+# read (if the system has a single card):
 sudo python3 reg_set.py 0x409664
 # write:
 sudo python3 reg_set.py 0x409664 0x88888888
+# pick a specific card when there are several (BDF from --list):
+sudo python3 reg_set.py 01:00.0 0x409664 0x88888888
 ```
 
 Prints the value before, after, and `OK`/`FAIL` (whether it stuck). The offset must
-be a multiple of 4 and lie in `0..0x1000000`. Known registers: `0x409650` —
-`FECS_PLM` (reads `ffffffff` after the ritual), `0x409664`/`0x40966C` — `SS0`/`SS1`.
-BAR0 may differ on another machine — check `lspci -v -d 10de:2189` and fix the
-constant at the top of the script.
+be a multiple of 4 and lie inside the BAR0 window (16 MB on Turing). With several
+cards and no BDF given, the tool prints the list and asks you to choose. Known
+registers: `0x409650` — `FECS_PLM` (reads `ffffffff` after the ritual),
+`0x409664`/`0x40966C` — `SS0`/`SS1`.
 
 ## Rollback
 
