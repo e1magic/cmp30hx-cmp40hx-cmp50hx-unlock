@@ -179,6 +179,9 @@ cards and no BDF given, the tool prints the list and asks you to choose. Known
 registers: `0x409650` — `FECS_PLM` (reads `ffffffff` after the ritual),
 `0x409664`/`0x40966C` — `SS0`/`SS1`.
 
+A separate find worth linking: [nvidia-pstated](https://github.com/sasha0552/nvidia-pstated)
+— a great utility for pstate control. No patches needed for this, it just works great.
+
 ## Rollback
 
 ```bash
