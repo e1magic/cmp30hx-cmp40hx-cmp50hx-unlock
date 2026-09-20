@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# cmp30hx-install.sh — установить патченые модули в дерево ядра НАПОСТОЯНУ.
-#   sudo ./cmp30hx-install.sh              — установка (с бэкапом стока)
-#   sudo ./cmp30hx-install.sh --rollback   — вернуть сток на место
+# cmp-install.sh — установить патченые модули в дерево ядра НАПОСТОЯНУ.
+#   sudo ./cmp-install.sh              — установка (с бэкапом стока)
+#   sudo ./cmp-install.sh --rollback   — вернуть сток на место
 # Сборку инициализирует сам пользователь — скрипт только меняет .ko на собранные им.
 set -euo pipefail
 
@@ -42,12 +42,12 @@ if [ "${1:-}" = "--rollback" ]; then
 fi
 
 # --- проверка окружения ------------------------------------------------------
-[ -d "$KO_DIR" ] || die "нет каталога с модулями: $KO_DIR (сначала ./cmp30hx-build.sh)"
+[ -d "$KO_DIR" ] || die "нет каталога с модулями: $KO_DIR (сначала ./cmp-build.sh)"
 for k in nvidia nvidia-uvm; do
-    [ -f "$KO_DIR/$k.ko" ] || die "нет $KO_DIR/$k.ko — собери сначала cmp30hx-build.sh"
+    [ -f "$KO_DIR/$k.ko" ] || die "нет $KO_DIR/$k.ko — собери сначала cmp-build.sh"
 done
-grep -qa CMP30 "$KO_DIR/nvidia.ko" \
-    || die "nvidia.ko не содержит маркеров CMP30 — это не патченая сборка"
+grep -qa CMP "$KO_DIR/nvidia.ko" \
+    || die "nvidia.ko не содержит маркеров CMP — это не патченая сборка"
 say "патченые модули на месте"
 
 D="$(dirname "$(modinfo -n nvidia 2>/dev/null || true)")"
@@ -87,4 +87,4 @@ done
 finish
 echo
 echo "Патч будет действовать после перезагрузки на каждой загрузке."
-echo "Откат: sudo ./cmp30hx-install.sh --rollback"
+echo "Откат: sudo ./cmp-install.sh --rollback"

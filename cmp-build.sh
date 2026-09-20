@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# cmp30hx-build.sh — скачать open-gpu-kernel-modules 610.43.03, наложить
-# ВЫБРАННЫЕ патчи CMP30HX и собрать модули. Права root не требует.
+# cmp-build.sh — скачать open-gpu-kernel-modules 610.43.03, наложить
+# ВЫБРАННЫЕ патчи CMP30HX CMP40HX CMP50HX и собрать модули. Права root не требует.
 #
 # Патчи перечислены в каталоге PATCHES ниже — новый патч = одна новая строка.
 #
 # Запуск:
-#   ./cmp30hx-build.sh                       — интерактивный выбор патчей
-#   ./cmp30hx-build.sh --patches=exploit     — неинтерактивно (id через запятую)
-#   ./cmp30hx-build.sh --patches=all         — все доступные патчи
-#   ./cmp30hx-build.sh --dry-run ...         — только проверить применимость, не собирать
+#   ./cmp-build.sh                       — интерактивный выбор патчей
+#   ./cmp-build.sh --patches=exploit     — неинтерактивно (id через запятую)
+#   ./cmp-build.sh --patches=all         — все доступные патчи
+#   ./cmp-build.sh --dry-run ...         — только проверить применимость, не собирать
 #
 # Артефакты: ./open-gpu-kernel-modules-610.43.03/kernel-open/*.ko
-# Далее: sudo ./cmp30hx-hotload.sh  (в память)  или  sudo ./cmp30hx-install.sh  (на постоянку)
+# Далее: sudo ./cmp-hotload.sh  (в память)  или  sudo ./cmp-install.sh  (на постоянку)
 set -euo pipefail
 
 VER=610.43.03
@@ -21,8 +21,8 @@ URL="https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/${VER}.
 # --- каталог патчей ----------------------------------------------------------
 # формат: id|файл|описание|файл-маркер|строка-маркер (для проверки «уже наложено»)
 PATCHES=(
-  "exploit|cmp30hx_exploit_clean.patch|разблокировка PLM (эксплойт GSP)|src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c|CMP30"
-  "pcie2|cmp30hx_pcie2.patch|PCIe Gen2 x16 (политика + retrain при инициализации)|kernel-open/nvidia/nv.c|CMP30_PCIE_GEN2_V2"
+  "exploit|cmp_exploit_clean.patch|разблокировка PLM (эксплойт GSP)|src/nvidia/src/kernel/gpu/gsp/kernel_gsp.c|CMP"
+  "pcie2|cmp_pcie2.patch|PCIe Gen2 x16 (политика + retrain при инициализации)|kernel-open/nvidia/nv.c|CMP_PCIE_GEN2_V2"
 )
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -165,5 +165,5 @@ say "ГОТОВО. Патченые модули (${SELECTED[*]}):"
 ls -la "$SRC/kernel-open/"*.ko
 echo
 echo "Дальше по желанию:"
-echo "  sudo ./cmp30hx-hotload.sh    — загрузить в память (до перезагрузки, без записи в систему)"
-echo "  sudo ./cmp30hx-install.sh    — установить постоянно (с бэкапом стока и откатом)"
+echo "  sudo ./cmp-hotload.sh    — загрузить в память (до перезагрузки, без записи в систему)"
+echo "  sudo ./cmp-install.sh    — установить постоянно (с бэкапом стока и откатом)"

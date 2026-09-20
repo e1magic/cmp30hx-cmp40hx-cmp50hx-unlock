@@ -16,15 +16,15 @@
  }
  
 +static NvBool
-+nv_cmp30hx_is_supported(struct pci_dev *gpu)
++nv_cmpX0hx_is_supported(struct pci_dev *gpu)
 +{
 +    return (gpu != NULL) &&
 +    (gpu->vendor == PCI_VENDOR_ID_NVIDIA) &&
-+    (gpu->device == 0x2189);
++    (gpu->device == 0x1E09 || gpu->device == 0x1F0B || gpu->device == 0x2189);
 +}
 +
 +static void
-+nv_cmp30hx_retrain_gen2(nv_state_t *nv)
++nv_cmpX0hx_retrain_gen2(nv_state_t *nv)
 +{
 +    nv_linux_state_t *nvl = NV_GET_NVL_FROM_NV_STATE(nv);
 +    struct pci_dev   *gpu = nvl->pci_dev;
@@ -34,20 +34,20 @@
 +    u32  cya0, link_config, pl_link_rate;
 +    int  ret;
 +
-+    if (!nv_cmp30hx_is_supported(gpu))
++    if (!nv_cmpX0hx_is_supported(gpu))
 +        return;
 +
 +    upstream = pci_upstream_bridge(gpu);
 +    if (!upstream) {
 +        NV_DEV_PRINTF(NV_DBG_ERRORS, nv,
-+                      "CMP30_PCIE_GEN2_V2: no upstream bridge\n");
++                      "CMPX0_PCIE_GEN2_V2: no upstream bridge\n");
 +        return;
 +    }
 +
 +    bar0 = ioremap(pci_resource_start(gpu, 0), 0x90000);
 +    if (!bar0) {
 +        NV_DEV_PRINTF(NV_DBG_ERRORS, nv,
-+                      "CMP30_PCIE_GEN2_V2: BAR0 map failed\n");
++                      "CMPX0_PCIE_GEN2_V2: BAR0 map failed\n");
 +        return;
 +    }
 +
@@ -56,7 +56,7 @@
 +    pl_link_rate = readl(bar0 + 0x8c1c0);
 +
 +    NV_DEV_PRINTF(NV_DBG_ERRORS, nv,
-+                  "CMP30_PCIE_GEN2_V2: CYA=%08x(DIS_G2=%u) "
++                  "CMPX0_PCIE_GEN2_V2: CYA=%08x(DIS_G2=%u) "
 +                  "CFG=%08x(bits[19:18]=%u) "
 +                  "PL=%08x(bits[18:17]=%u)\n",
 +                  cya0, (cya0 >> 2) & 1U,
@@ -68,7 +68,7 @@
 +        (((pl_link_rate >> 17) & 3U) != 2U))
 +    {
 +        NV_DEV_PRINTF(NV_DBG_ERRORS, nv,
-+                      "CMP30_PCIE_GEN2_V2: GSP policy not ready; retrain skipped\n");
++                      "CMPX0_PCIE_GEN2_V2: GSP policy not ready; retrain skipped\n");
 +        iounmap(bar0);
 +        return;
 +    }
@@ -130,23 +130,23 @@
 +                    ((link_status & PCI_EXP_LNKSTA_CLS) >= PCI_EXP_LNKSTA_CLS_5_0GB))
 +                {
 +                    NV_DEV_PRINTF(NV_DBG_ERRORS, nv,
-+                                  "CMP30_PCIE_GEN2_V2: RETRAIN_PASS status=%04x attempt=%d\n",
-+                                  link_status, pulse + 1); /* CMP30_V3FIX */
++                                  "CMPX0_PCIE_GEN2_V2: RETRAIN_PASS status=%04x attempt=%d\n",
++                                  link_status, pulse + 1); /* CMPX0_V3FIX */
 +                    return;
 +                }
 +            }
 +
 +            NV_DEV_PRINTF(NV_DBG_ERRORS, nv,
-+                          "CMP30_PCIE_GEN2_V2: retrain pulse %d failed status=%04x\n",
++                          "CMPX0_PCIE_GEN2_V2: retrain pulse %d failed status=%04x\n",
 +                          pulse + 1, link_status);
 +        }
 +    }
 +    NV_DEV_PRINTF(NV_DBG_ERRORS, nv,
-+                  "CMP30_PCIE_GEN2_V2: RETRAIN_FAIL status=%04x\n", link_status); /* CMP30_V3FIX */
++                  "CMPX0_PCIE_GEN2_V2: RETRAIN_FAIL status=%04x\n", link_status); /* CMPX0_V3FIX */
 +    return;
 +    cap_err:
 +    NV_DEV_PRINTF(NV_DBG_ERRORS, nv,
-+                  "CMP30_PCIE_GEN2_V2: PCI cap error=%d\n", ret);
++                  "CMPX0_PCIE_GEN2_V2: PCI cap error=%d\n", ret);
 +}
 +
  /*
@@ -156,7 +156,7 @@
          goto failed_release_irq;
      }
  
-+    nv_cmp30hx_retrain_gen2(nv);
++    nv_cmpX0hx_retrain_gen2(nv);
 +
      /* Generate and cache the UUID for future callers */
      (void)rm_get_gpu_uuid_raw(sp, nv);
@@ -169,7 +169,7 @@ Binary files a/kernel-open/nvidia-modeset/nv-modeset-kernel.o_binary and b/kerne
  
      NV_PRINTF(LEVEL_INFO, "GSP FW RM ready.\n");
  
-+    if (pGpu->idInfo.PCIDeviceID == 0x218910DEu)
++    if (pGpu->idInfo.PCIDeviceID == 0x1E0910DEu || pGpu->idInfo.PCIDeviceID == 0x1F0B10DEu || pGpu->idInfo.PCIDeviceID == 0x218910DEu)
 +    {
 +        NvU32 lnkcfg   = GPU_REG_RD32(pGpu, 0x0008c040U);
 +        NvU32 pl_rate  = GPU_REG_RD32(pGpu, 0x0008c1c0U);
@@ -188,7 +188,7 @@ Binary files a/kernel-open/nvidia-modeset/nv-modeset-kernel.o_binary and b/kerne
 +        rb_pl_rate = GPU_REG_RD32(pGpu, 0x0008c1c0U);
 +
 +        NV_PRINTF(LEVEL_ERROR,
-+                  "CMP30_PCIE_GEN2_V2: "
++                  "CMPX0_PCIE_GEN2_V2: "
 +                  "LNKCFG=0x%08x(bits[19:18]=%u) "
 +                  "PL_RATE=0x%08x(bits[18:17]=%u) "
 +                  "CYA0=0x%08x(DIS_G2=%u)\n",

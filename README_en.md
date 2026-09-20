@@ -1,12 +1,13 @@
-# CMP 30HX Unlock
+# CMP 30HX / 40HX / 50HX Unlock
 
 [Русская версия](README.md)
 
-A patch and scripts for the NVIDIA CMP 30HX GPU, built on top of NVIDIA's open
-[open-gpu-kernel-modules](https://github.com/NVIDIA/open-gpu-kernel-modules) driver, version **610.43.03**.
+Patches and scripts for NVIDIA CMP **30HX / 40HX / 50HX** GPUs, built on top of
+NVIDIA's open [open-gpu-kernel-modules](https://github.com/NVIDIA/open-gpu-kernel-modules)
+driver, version **610.43.03**.
 
-Two patches — the PLM unlock (`cmp30hx_exploit_clean.patch`) and PCIe Gen2
-(`cmp30hx_pcie2.patch`) — and three scripts: build (with patch selection), try, keep forever.
+Two patches — the PLM unlock (`cmp_exploit_clean.patch`) and PCIe Gen2
+(`cmp_pcie2.patch`) — and three scripts: build (with patch selection), try, keep forever.
 
 > **Important:** the NVIDIA driver **610.43.03** must already be installed on the system
 > in its open kernel modules flavor (**MIT**, NVIDIA labels it the `-open` variant):
@@ -15,10 +16,11 @@ Two patches — the PLM unlock (`cmp30hx_exploit_clean.patch`) and PCIe Gen2
 
 ## What it does
 
-The CMP 30HX is a GPU with its limiter policy bricked into hardware. The patch embeds
-a "three-shot machine" into the GSP boot path (the firmware booter cycle): three
+CMP cards carry a limiter policy bricked into hardware. The patch embeds a
+"three-shot machine" into the GSP boot path (the firmware booter cycle): three
 controlled shots sequentially unlock the GPU register locks, after which the card
-boots the stock firmware with the limiters awakened.
+boots the stock firmware with the limiters awakened. The patch works on all three
+cards (PCI IDs `10de:2189`, `10de:1f0b`, `10de:1e09`).
 
 After the ritual:
 
@@ -30,17 +32,35 @@ After the ritual:
 
 The ritual is harmless to the hardware and repeats on every module load.
 
+## What you get
+
+Live measurements on a **CMP 50HX** (GEMM 4096x4096):
+
+| Metric | Before | After unlock |
+|---|---|---|
+| FP32 kernel | 0.853 TFLOPS | **27.117 TFLOPS** |
+| FP16 kernel | 54.6 TFLOPS | 54.6 TFLOPS |
+| FP32 cuBLAS | 0.422 TFLOPS | **12.495 TFLOPS** |
+| FP16 cuBLAS | 3.118 TFLOPS | **88.376 TFLOPS** |
+| FP64 | ~0.85 / 0.42 TFLOPS | unchanged (stock) |
+
+On CMP 40HX and 50HX the exploit gives a multiple performance gain. On CMP 30HX
+it opens room for experiments. PCIe Gen2 (see below) works on all three cards.
+
+Several CMP cards can run in the same machine mixed together: the ritual is
+applied to each card separately and does not interfere with the others.
+
 ## How it works
 
-The patch adds a three-"shot" machine into `kernel-open/nvidia/` (the module's GSP path).
-Each shot is a forged firmware signature that makes the booter, via its own
-vulnerability, execute a short chain writing two PRI registers:
+The patch adds a three-"shot" machine into the module's GSP path. Each shot is a
+forged firmware signature that makes the booter, via its own vulnerability,
+execute a short chain writing GPU PRI registers:
 
 | Shot | What it unlocks |
 |---|---|
-| 0 | `FECS_PLM` → `ffffffff` (removes the FECS lock) + writes `SS_BETWEEN` (speed overrides) |
-| 1 | service (reserved) |
-| 2 | `WPR2_HI` → `0` (kills the Write-Protected Region 2) |
+| 0 | `FECS_PLM` → `ffffffff` (removes the FECS lock) + service chain |
+| 1 | kills `WPR2` (Write-Protected Region 2), PLM chain |
+| 2 | final chain; between shots the speed overrides `SS0/SS1` are written |
 
 After each shot the original stock signature is restored, and after the third one the
 driver performs an ordinary stock `BooterLoad` — and GSP takes off on an already
@@ -51,22 +71,22 @@ driver is completely stock.
 
 | id | File | What it does |
 |---|---|---|
-| `exploit` | `cmp30hx_exploit_clean.patch` | PLM/GSP unlock (see "What it does") |
-| `pcie2` | `cmp30hx_pcie2.patch` | PCIe Gen2 x16 (see "PCIe Gen2") |
+| `exploit` | `cmp_exploit_clean.patch` | PLM/GSP unlock (see "What it does") |
+| `pcie2` | `cmp_pcie2.patch` | PCIe Gen2 x16 (see "PCIe Gen2") |
 
 The patches are independent — apply either one or both. The build asks which
 patches to apply:
 
 ```bash
-./cmp30hx-build.sh                       # interactive pick (numbers/ids/all)
-./cmp30hx-build.sh --patches=all         # non-interactive: both
-./cmp30hx-build.sh --patches=exploit     # unlock only
-./cmp30hx-build.sh --dry-run --patches=all   # only check applicability
+./cmp-build.sh                       # interactive pick (numbers/ids/all)
+./cmp-build.sh --patches=all         # non-interactive: both
+./cmp-build.sh --patches=exploit     # unlock only
+./cmp-build.sh --dry-run --patches=all   # only check applicability
 ```
 
 An already-applied patch is detected by its marker in the sources and skipped —
 rerunning is safe. A third patch = one line in the `PATCHES` catalog at the top
-of `cmp30hx-build.sh` + the patch file next to the script.
+of `cmp-build.sh` + the patch file next to the script.
 
 ## PCIe Gen2
 
@@ -76,12 +96,13 @@ software fuse and sets the speed policy in the GPU's PCIe block; (2) on the
 first device open it runs a short series of link retrains (bridge → endpoint →
 bridge) targeting 5 GT/s on both ends. The hardware picks the speed, so the
 first attempt is not guaranteed — the machine fires up to three pulses.
+Works on CMP 30HX/40HX/50HX.
 
 Verify:
 
 ```bash
-sudo lspci -vv -d 10de:2189 | grep LnkSta  # Speed 5GT/s, Width x16 — no "downgraded" note
-sudo dmesg | grep CMP30_PCIE_GEN2_V2      # RETRAIN_PASS status=1102 attempt=N
+sudo lspci -vv -d 10de:2189 | grep LnkSta   # Speed 5GT/s, Width x16 — no "downgraded" note
+sudo dmesg | grep CMP_PCIE_GEN2_V2          # RETRAIN_PASS status=1102 attempt=N
 ```
 
 Live run on x16 Gen2: D2D ~301 GB/s, H2D/D2H ~6.7 GB/s (≈97% of bus bandwidth).
@@ -92,7 +113,7 @@ Live run on x16 Gen2: D2D ~301 GB/s, H2D/D2H ~6.7 GB/s (≈97% of bus bandwidth)
 
 ## Requirements
 
-- CMP 30HX (PCI ID `10de:2189`);
+- CMP 30HX (`10de:2189`), CMP 40HX (`10de:1f0b`) or CMP 50HX (`10de:1e09`);
 - NVIDIA driver **610.43.03** installed (open kernel modules, MIT / `-open`);
 - Linux with kernel build tooling (`build-essential`, `linux-headers-$(uname -r)`);
 - the kernel you build the modules for (rebuild after a kernel update);
@@ -106,18 +127,18 @@ The system stays untouched — after a reboot everything is stock again, safe:
 ```bash
 # 1. Build: downloads the official 610.43.03 tarball from GitHub (verifies sha256),
 #    asks which patches to apply (or --patches=...), builds the modules.
-./cmp30hx-build.sh
+./cmp-build.sh
 
 # 2. Hot-load: unloads stock modules, loads patched ones,
 #    waits for the ritual, prints the counters.
-sudo ./cmp30hx-hotload.sh
+sudo ./cmp-hotload.sh
 ```
 
 Verify:
 
 ```bash
 sudo dmesg | grep -i -E 'NVRM|nvidia-drm'   # the shot chain: PRE_SHOT/POST_SHOT/STOCK_BOOT
-nvidia-smi                                  # CMP 30HX in the list
+nvidia-smi                                  # CMP card in the list
 ```
 
 This run is temporary: after a reboot the stock modules load again.
@@ -126,7 +147,7 @@ This run is temporary: after a reboot the stock modules load again.
 
 ```bash
 # 1. Install system-wide: backs up stock modules (*.ko.stock), installs patched ones.
-sudo ./cmp30hx-install.sh
+sudo ./cmp-install.sh
 
 # 2. Reboot. On the next boot the ritual runs by itself, the card is awakened.
 sudo reboot
@@ -156,7 +177,7 @@ constant at the top of the script.
 ## Rollback
 
 ```bash
-sudo ./cmp30hx-install.sh --rollback   # put the stock *.ko files back
+sudo ./cmp-install.sh --rollback   # put the stock *.ko files back
 ```
 
 Stock copies are made once at first install and are never overwritten.
@@ -165,11 +186,11 @@ Stock copies are made once at first install and are never overwritten.
 
 | File | Purpose |
 |---|---|
-| `cmp30hx_exploit_clean.patch` | the GSP-path patch (15 hunks, `patch -p1` from the tree root) |
-| `cmp30hx_pcie2.patch` | the PCIe Gen2 patch (2 files, `patch -p1` from the tree root) |
-| `cmp30hx-build.sh` | download pinned source + patch selection + build |
-| `cmp30hx-install.sh` | install / `--rollback` |
-| `cmp30hx-hotload.sh` | temporary load with the full ritual |
+| `cmp_exploit_clean.patch` | the GSP-path patch (PLM unlock for 30HX/40HX/50HX, `patch -p1` from the tree root) |
+| `cmp_pcie2.patch` | the PCIe Gen2 patch (3 cards, `patch -p1` from the tree root) |
+| `cmp-build.sh` | download pinned source + patch selection + build |
+| `cmp-install.sh` | install / `--rollback` |
+| `cmp-hotload.sh` | temporary load with the full ritual |
 | `reg_set.py` | read/write GPU registers via `/dev/mem` (after the unlock) |
 
 ## Authorship
@@ -193,7 +214,7 @@ Built using the work of open projects:
 - The scripts are pinned to driver version **610.43.03** (the source sha256 is
   fixed). Another version needs its own patch.
 - After a kernel update the modules won't survive the version change — run
-  `build.sh` + `install.sh` again. DKMS is deliberately not used.
+  `cmp-build.sh` + `cmp-install.sh` again. DKMS is deliberately not used.
 
 ## Contacts
 
