@@ -34,6 +34,11 @@ if [ "${1:-}" = "--rollback" ]; then
             say "восстановлен $D/$k.ko"
             RESTORED=1
         fi
+        if [ -f "$D/$k.ko.zst.stock" ]; then
+            mv -f "$D/$k.ko.zst.stock" "$D/$k.ko.zst"
+            say "восстановлен $D/$k.ko.zst"
+            RESTORED=1
+        fi
     done
     [ "$RESTORED" -eq 1 ] || die "бэкапов ($k.ko.stock) здесь нет — откатывать нечего: $D"
     finish
@@ -68,12 +73,18 @@ if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -
 fi
 
 # --- бэкап стока (один раз, поверх не пишем) -----------------------------------
+# Ubuntu/DKMS сжатые модули (.ko.zst) имеют приоритет в depmod — их надо прятать,
+# иначе ядро продолжит грузить сток рядом с нашей патченой .ko.
 for k in "${MODS[@]}"; do
     if [ -f "$D/$k.ko" ] && [ ! -f "$D/$k.ko.stock" ]; then
         cp -a "$D/$k.ko" "$D/$k.ko.stock"
         say "бэкап стока: $D/$k.ko.stock"
     elif [ -f "$D/$k.ko.stock" ]; then
         say "бэкап уже есть: $D/$k.ko.stock"
+    fi
+    if [ -f "$D/$k.ko.zst" ] && [ ! -f "$D/$k.ko.zst.stock" ]; then
+        mv -f "$D/$k.ko.zst" "$D/$k.ko.zst.stock"
+        say "сток .zst спрятан: $D/$k.ko.zst.stock"
     fi
 done
 
@@ -82,6 +93,11 @@ for k in "${MODS[@]}"; do
     [ -f "$KO_DIR/$k.ko" ] || { say "пропускаю $k (не собран)"; continue; }
     cp -f "$KO_DIR/$k.ko" "$D/$k.ko"
     say "установлен $D/$k.ko"
+    # на всякий случай: если .zst всё же остался в целевом каталоге — убираем
+    if [ -f "$D/$k.ko.zst" ]; then
+        mv -f "$D/$k.ko.zst" "$D/$k.ko.zst.stock" 2>/dev/null || rm -f "$D/$k.ko.zst"
+        say "убран конфликтующий $D/$k.ko.zst"
+    fi
 done
 
 finish
